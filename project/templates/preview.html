@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preview</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding-top: 20px;
+            text-align: center;
+        }
+
+        .file-preview {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+            overflow: auto;
+        }
+
+        #downloadLink {
+            display: block;
+            margin-top: 10px;
+            text-decoration: none;
+            color: #007bff;
+        }
+
+        #downloadLink:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Preview</h1>
+        <div class="file-preview">
+            <h2>Processed Data</h2>
+            <!-- Display the processed data here -->
+            <pre>{{ processed_data }}</pre>
+            <a id="downloadLink" href="" download>Download Processed File</a>
+        </div>
+    </div>
+
+    <script>
+		// Get the cleaned file URL from the query string
+		const queryString = window.location.search;
+		const urlParams = new URLSearchParams(queryString);
+		const cleanedFileUrl = urlParams.get('file');
+
+		// Set the download link href attribute to the cleaned file URL
+		const downloadLink = document.getElementById('downloadLink');
+		if (cleanedFileUrl) {
+			downloadLink.href = cleanedFileUrl;
+		} else {
+			downloadLink.style.display = 'none'; // Hide the download link if URL is not found
+		}
+	</script>
+</body>
+</html>

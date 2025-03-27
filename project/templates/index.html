@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1.0">
+    <title>File Processing</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <style>
+        html {
+            background: black;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            margin: center;
+            padding: 0;
+            height: 100%;
+        }
+
+        .container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            min-width: 220px;
+            min-height: 480px;
+            width: 80%; /* Adjust the width as needed */
+            max-width: 650px; /* Set a maximum width if desired */
+            height: auto; /* Adjust the height as needed */
+            max-height: 80%; /* Set a maximum height if desired */
+            min-height: 100px; /* Adjust the minimum height as needed */
+            overflow: auto; /* Add scrollbars if content overflows */
+        }
+
+        h2 {
+            margin-bottom: 20px;
+        }
+
+        #dropZone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 0 auto; 
+            margin-bottom: 20px;
+            cursor: pointer;
+            width: 50%; /* Added to limit width */
+            max-width: 400px; /* Adjust width as needed */
+            font-size: 20px;
+        }
+
+        #dropZone.hover {
+            background-color: #f0f8ff;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 30px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0 10px; /* Adjust the margin as needed */
+        }
+
+        button:hover {
+            background-color: rgba(0, 0, 0, 0.4);
+            border: top, bottom, left, right;
+            border-color: #2af6fa;
+            border-radius: 4px;
+        }
+
+        #output {
+            margin-bottom: 20px;
+        }
+
+        /* Additional styles for the matrix background */
+        .matrix-background {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .matrix-stream {
+            position: absolute;
+            color: #00ff00;
+            font-size: 16px;
+            white-space: nowrap;
+            animation: matrix-flow linear infinite;
+        }
+
+        @keyframes matrix-flow {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Matrix background -->
+    <canvas id="Matrix" class="matrix-background"></canvas>
+
+    <!-- Content container -->
+    <div class="container">
+        <!-- Existing content -->
+        <h2>Data Cleansing</h2>
+        <div id="dropZone" class="drop-zone">Drag and drop files here</div>
+        <div class="button-container">
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" id="fileInput" name="file" style="display: none;">
+                <button type="button" onclick="document.getElementById('fileInput').click();">Select file</button>
+                <button type="button" id="cleanBtn">Clean</button>
+            </form>
+        </div>
+    <script>
+        var dropZone = document.getElementById('dropZone');
+        var output = document.getElementById('output');
+        var uploadForm = document.getElementById('uploadForm');
+        var cleanBtn = document.getElementById('cleanBtn');
+        var previewBtn = document.getElementById('previewBtn');
+        var selectedFile;
+        var isProcessing = false; // Flag to track whether a file is currently being processed
+
+        dropZone.addEventListener('dragover', function(event) {
+            event.preventDefault();
+            dropZone.classList.add('hover');
+        });
+
+        dropZone.addEventListener('dragleave', function(event) {
+            event.preventDefault();
+            dropZone.classList.remove('hover');
+        });
+
+        dropZone.addEventListener('drop', function(event) {
+            event.preventDefault();
+            dropZone.classList.remove('hover');
+            var files = event.dataTransfer.files;
+            handleFiles(files);
+        });
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            var files = event.target.files;
+            handleFiles(files);
+        });
+
+        cleanBtn.addEventListener('click', function() {
+            console.log('Clean button clicked');
+            if (selectedFile && !isProcessing) { // Ensure a file is selected and not currently processing
+                handleClean(selectedFile);
+            } else {
+                console.error('No file selected or already processing a file');
+            }
+        });
+
+        function handleFiles(files) {
+            if (!isProcessing && files.length > 0) { // Check if not already processing and files are present
+                var fileName = files[0].name;
+                dropZone.textContent = 'Selected file: ' + fileName;
+                selectedFile = files[0];
+                // Show the Preview button
+                previewBtn.style.display = 'block';
+            } else {
+                console.error('No file selected or already processing a file');
+            }
+        }
+
+        function handleClean(file) {
+            if (!isProcessing) { // Check if not already processing
+                isProcessing = true; // Set processing flag to true
+                console.log('Cleaning file...');
+                var formData = new FormData();
+                formData.append('file', file);
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/process_file', true);
+                xhr.onload = function() {
+                    isProcessing = false; // Reset processing flag to false
+                    if (xhr.status === 200) {
+                        var cleanedFileBlob = xhr.response;
+                        var cleanedFileUrl = URL.createObjectURL(cleanedFileBlob);
+                        var link = document.createElement('a');
+                        link.href = cleanedFileUrl;
+                        link.setAttribute('download', file.name);
+                        link.click();
+                        // Reset drop zone content
+                        dropZone.textContent = 'Drag and drop files here';
+                        selectedFile = null; // Reset selected file
+                        resetSelectFileButton(); // Reset the select file button after cleaning
+                        output.textContent = ''; // Clear error message
+                    } else {
+                        output.textContent = 'Error processing file. Status: ' + xhr.status;
+                        console.error('XHR Error:', xhr.status);
+                        dropZone.textContent = 'Drag and drop files here'; // Clear dropbox content
+                        selectedFile = null; // Reset selected file
+                    }
+                };
+                xhr.onerror = function() {
+                    isProcessing = false; // Reset processing flag to false even in case of error
+                    output.textContent = 'Error processing file. Please try again later.';
+                    console.error('XHR Error:', xhr.status);
+                    dropZone.textContent = 'Drag and drop files here'; // Clear dropbox content
+                    selectedFile = null; // Reset selected file
+                };
+                xhr.responseType = 'blob'; // Set the responseType to blob to handle binary data
+                xhr.send(formData);
+            } else {
+                console.error('Already processing a file');
+            }
+        }
+
+        function resetSelectFileButton() {
+            document.getElementById('fileInput').value = '';
+        }
+
+        // Function to reset drop zone content
+        function resetDropZone() {
+            dropZone.textContent = 'Drag and drop files here';
+            selectedFile = null;
+            // Hide the Preview button when resetting drop zone
+            previewBtn.style.display = 'none';
+        }
+
+        // Function to handle preview button click
+        function handlePreview() {
+    // Check if a file is selected
+    if (selectedFile) {
+        // Create a FormData object
+        var formData = new FormData();
+        formData.append('file', selectedFile);
+
+        // Send the form data to the server for processing and preview
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', '/process_and_preview', true);
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                // Redirect to the preview page with the processed data
+                window.location.href = '/preview?processed_data=' + encodeURIComponent(xhr.responseText);
+            } else {
+                console.error('Error processing file. Status:', xhr.status);
+            }
+        };
+        xhr.onerror = function() {
+            console.error('Error processing file. Please try again later.');
+        };
+        xhr.send(formData);
+    } else {
+        console.error('No file selected');
+    }
+}
+
+
+        var canvas = document.getElementById('Matrix');
+        var context = canvas.getContext('2d');
+        var fontSize = 12;
+        var rainDrops = [];
+
+        function updateCanvasSize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            // Recalculate the number of columns based on the new canvas width
+            var columns = Math.ceil(canvas.width / fontSize);
+            if (columns !== rainDrops.length) {
+                // Only update rainDrops array if the number of columns has changed
+                rainDrops = new Array(columns).fill(1);
+            }
+        }
+
+        function updateDimensions() {
+            fontSize = Math.max(8, Math.floor(window.innerWidth / 120)); // Adjust the divisor for desired font size responsiveness
+            updateCanvasSize();
+        }
+
+        // Update canvas size initially and on window resize
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+
+        const code = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+        const alphabet = code;
+
+        function draw() {
+            context.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            
+            context.fillStyle = '#27f5f5';
+            context.font = fontSize + 'px monospace';
+
+            for(let i = 0; i < rainDrops.length; i++) {
+                const text = alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+                context.fillText(text, i * fontSize, rainDrops[i] * fontSize);
+                
+                if(rainDrops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    rainDrops[i] = 0;
+                }
+                rainDrops[i]++;
+            }
+        }
+
+        // Call draw function initially and on every 30 milliseconds
+        draw();
+        setInterval(draw, 30);
+    </script>
+</body>
+</html>
